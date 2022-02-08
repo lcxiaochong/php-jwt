@@ -4,6 +4,8 @@ namespace Firebase\JWT;
 
 use ArrayAccess;
 use Psr\Http\Client\ClientInterface;
+use Psr\Http\Message\RequestFactoryInterface;
+use Psr\Http\Message\RequestInterface;
 use Psr\Cache\CacheItemPoolInterface;
 use LogicException;
 use OutOfBoundsException;
@@ -12,29 +14,34 @@ use RuntimeException;
 class CachedKeySet implements ArrayAccess
 {
     private $jwkUri;
+    private $httpClient;
+    private $httpFactory;
     private $cache;
-    private $http;
-    private $expiresIn;
+    private $expiresAfter;
+
+    private $cacheItem;
     private $keySet;
     private $cacheKeyPrefix = 'jwk';
     private $maxKeyLength = 64;
 
     public function __construct(
         $jwkUri,
-        ClientInterface $http,
+        ClientInterface $httpClient,
+        RequestFactoryInterface $httpFactory,
         CacheItemPoolInterface $cache,
-        $expiresIn = null
+        $expiresAfter = null
     ) {
         $this->jwkUri = $jwkUri;
         $this->cacheKey = $this->getCacheKey($jwkUri);
-        $this->http = $http;
+        $this->httpClient = $httpClient;
+        $this->httpFactory = $httpFactory;
         $this->cache = $cache;
-        $this->expiresIn = $expiresIn;
+        $this->expiresAfter = $expiresAfter;
     }
 
     public function offsetGet($keyId)
     {
-        if (!$this->keyIdExists($kid)) {
+        if (!$this->keyIdExists($keyId)) {
             throw new OutOfBoundsException('Key ID not found');
         }
         return $this->keySet[$keyId];
@@ -55,26 +62,11 @@ class CachedKeySet implements ArrayAccess
         throw new LogicException('Method not implemented');
     }
 
-    private function fetchFromUrl()
-    {
-        // fetch the keys and save them to the cache
-        $jwks = $this->http->get($jwkUri);
-        $keySet = static::parseKeySet($jwks);
-
-        if ($cache) {
-            $item->set($keySet);
-            $item->expiresAfter($expiresAfter);
-            $cache->save($item);
-        }
-
-        return $keySet;
-    }
-
     private function keyIdExists($keyId)
     {
         $keySetToCache = null;
         if (null === $this->keySet) {
-            $item = $this->cache->getItem($this->cacheKey);
+            $item = $this->getCacheItem();
             // Try to load keys from cache
             if ($item->isHit()) {
                 // item found! Return it
@@ -83,7 +75,9 @@ class CachedKeySet implements ArrayAccess
         }
 
         if (!isset($this->keySet[$keyId])) {
-            $jwk = $this->http->get($this->jwtUri);
+            $request = $this->httpFactory->createRequest('get', $this->jwkUri);
+            $jwkResponse = $this->httpClient->sendRequest($request);
+            $jwk = json_decode((string) $jwkResponse->getBody(), true);
             $this->keySet = $keySetToCache = JWK::parseKeySet($jwk);
 
             if (!isset($this->keySet[$keyId])) {
@@ -92,11 +86,24 @@ class CachedKeySet implements ArrayAccess
         }
 
         if ($keySetToCache) {
+            $item = $this->getCacheItem();
             $item->set($keySetToCache);
+            if ($this->expiresAfter) {
+                $item->expiresAfter($this->expiresAfter);
+            }
             $this->cache->save($item);
         }
 
         return true;
+    }
+
+    private function getCacheItem()
+    {
+        if ($this->cacheItem) {
+            return $this->cacheItem;
+        }
+
+        return $this->cacheItem = $this->cache->getItem($this->cacheKey);
     }
 
     private function getCacheKey($jwkUri)
