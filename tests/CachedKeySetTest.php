@@ -138,6 +138,97 @@ class CachedKeySetTest extends TestCase
         $this->assertEquals('bar', $cachedKeySet['bar']->getAlgorithm());
     }
 
+    public function testCacheItemWithExpiresAfter()
+    {
+        $expiresAfter = 10;
+        $cacheItem = $this->prophesize('Psr\Cache\CacheItemInterface');
+        $cacheItem->isHit()
+            ->shouldBeCalledOnce()
+            ->willReturn(false);
+        $cacheItem->set(Argument::any())
+            ->shouldBeCalledOnce();
+        $cacheItem->expiresAfter($expiresAfter)
+            ->shouldBeCalledOnce();
+
+        $cache = $this->prophesize('Psr\Cache\CacheItemPoolInterface');
+        $cache->getItem($this->testJwkUriKey)
+            ->shouldBeCalledOnce()
+            ->willReturn($cacheItem->reveal());
+        $cache->save(Argument::any())
+            ->shouldBeCalledOnce();
+
+        $cachedKeySet = new CachedKeySet(
+            $this->testJwkUri,
+            $this->getMockHttpClient($this->testJwk1),
+            $this->getMockHttpFactory(),
+            $cache->reveal(),
+            $expiresAfter
+        );
+        $this->assertInstanceOf('Firebase\JWT\Key', $cachedKeySet['foo']);
+        $this->assertEquals('foo', $cachedKeySet['foo']->getAlgorithm());
+    }
+
+    public function testJwtVerify()
+    {
+        $privKey1 = file_get_contents(__DIR__ . '/data/rsa1-private.pem');
+        $payload = array('sub' => 'foo', 'exp' => strtotime('+10 seconds'));
+        $msg = JWT::encode($payload, $privKey1, 'RS256', 'jwk1');
+
+        $cacheItem = $this->prophesize('Psr\Cache\CacheItemInterface');
+        $cacheItem->isHit()
+            ->willReturn(true);
+        $cacheItem->get()
+            ->willReturn(JWK::parseKeySet(
+                json_decode(file_get_contents(__DIR__ . '/data/rsa-jwkset.json'), true)
+            ));
+
+        $cache = $this->prophesize('Psr\Cache\CacheItemPoolInterface');
+        $cache->getItem($this->testJwkUriKey)
+            ->willReturn($cacheItem->reveal());
+
+        $cachedKeySet = new CachedKeySet(
+            $this->testJwkUri,
+            $this->prophesize('Psr\Http\Client\ClientInterface')->reveal(),
+            $this->prophesize('Psr\Http\Message\RequestFactoryInterface')->reveal(),
+            $cache->reveal()
+        );
+
+        $result = JWT::decode($msg, $cachedKeySet);
+
+        $this->assertEquals("foo", $result->sub);
+    }
+
+    /**
+     * @dataProvider provideFullIntegration
+     */
+    public function testFullIntegration($jwkUri, $kid)
+    {
+        if (!class_exists(TestMemoryCacheItemPool::class)) {
+            $this->markTestSkipped('Use phpunit-system.xml.dist to run this tests');
+        }
+
+        $cache = new TestMemoryCacheItemPool();
+        $http = new \GuzzleHttp\Client();
+        $factory = new \GuzzleHttp\Psr7\HttpFactory();
+
+        $cachedKeySet = new CachedKeySet(
+            $jwkUri,
+            $http,
+            $factory,
+            $cache
+        );
+
+        $this->assertArrayHasKey($kid, $cachedKeySet);
+    }
+
+    public function provideFullIntegration()
+    {
+        return [
+            [$this->googleRsaUri, '182e450a35a2081faa1d9ae1d2d75a0f23d91df8'],
+            // [$this->googleEcUri, 'LYyP2g']
+        ];
+    }
+
     private function getMockHttpClient($testJwk)
     {
         $body = $this->prophesize('Psr\Http\Message\StreamInterface');
@@ -186,56 +277,6 @@ class CachedKeySetTest extends TestCase
             ->willReturn(true);
 
         return $cache->reveal();
-    }
-
-    public function testCacheItemWithExpiresAfter()
-    {
-        $expiresAfter = 10;
-        $cacheItem = $this->prophesize('Psr\Cache\CacheItemInterface');
-        $cacheItem->isHit()
-            ->shouldBeCalledOnce()
-            ->willReturn(false);
-        $cacheItem->set(Argument::any())
-            ->shouldBeCalledOnce();
-        $cacheItem->expiresAfter($expiresAfter)
-            ->shouldBeCalledOnce();
-
-        $cache = $this->prophesize('Psr\Cache\CacheItemPoolInterface');
-        $cache->getItem($this->testJwkUriKey)
-            ->shouldBeCalledOnce()
-            ->willReturn($cacheItem->reveal());
-        $cache->save(Argument::any())
-            ->shouldBeCalledOnce();
-
-        $cachedKeySet = new CachedKeySet(
-            $this->testJwkUri,
-            $this->getMockHttpClient($this->testJwk1),
-            $this->getMockHttpFactory(),
-            $cache->reveal(),
-            $expiresAfter
-        );
-        $this->assertInstanceOf('Firebase\JWT\Key', $cachedKeySet['foo']);
-        $this->assertEquals('foo', $cachedKeySet['foo']->getAlgorithm());
-    }
-
-    public function testFullIntegration()
-    {
-        if (!class_exists(TestMemoryCacheItemPool::class)) {
-            $this->markTestSkipped('Use phpunit-system.xml.dist to run this tests');
-        }
-
-        $cache = new TestMemoryCacheItemPool();
-        $http = new \GuzzleHttp\Client();
-        $factory = new \GuzzleHttp\Psr7\HttpFactory();
-
-        $cachedKeySet = new CachedKeySet(
-            $this->googleRsaUri,
-            $http,
-            $factory,
-            $cache
-        );
-
-        $this->assertArrayHasKey('182e450a35a2081faa1d9ae1d2d75a0f23d91df8', $cachedKeySet);
     }
 
     /*

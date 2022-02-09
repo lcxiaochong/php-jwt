@@ -394,6 +394,10 @@ class JWT
             return $keyOrKeyArray;
         }
 
+        if ($keyOrKeyArray instanceof CachedKeySet) {
+            return $keyOrKeyArray[$kid];
+        }
+
         if (is_array($keyOrKeyArray) || $keyOrKeyArray instanceof ArrayAccess) {
             foreach ($keyOrKeyArray as $keyId => $key) {
                 if (!$key instanceof Key) {
