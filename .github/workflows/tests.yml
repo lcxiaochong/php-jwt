@@ -46,7 +46,7 @@ jobs:
         with:
           timeout_minutes: 10
           max_attempts: 3
-          command: composer require guzzlehttp/guzzle psr/cache
+          command: composer require guzzlehttp/guzzle psr/cache:2.0.0
       - name: Run Script
         run: vendor/bin/phpunit -c phpunit-system.xml.dist
 
