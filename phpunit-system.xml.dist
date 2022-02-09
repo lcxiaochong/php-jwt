@@ -8,12 +8,11 @@
          convertWarningsToExceptions="true"
          processIsolation="false"
          stopOnFailure="false"
-         bootstrap="tests/bootstrap.php"
+         bootstrap="tests/bootstrap-system.php"
 >
     <testsuites>
         <testsuite name="PHP JSON Web Token Test Suite">
-            <directory>./tests</directory>
-            <exclude>./tests/CachedKeySetTest.php</exclude>
+            <file>./tests/CachedKeySetTest.php</file>
         </testsuite>
     </testsuites>
 </phpunit>
