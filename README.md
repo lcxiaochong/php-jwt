@@ -203,6 +203,42 @@ $jwks = ['keys' => []];
 JWT::decode($payload, JWK::parseKeySet($jwks));
 ```
 
+Using Cached Key Sets
+---------------------
+
+The `CachedKeySet` class can be used to fetch JWK keys from a public URI. This has
+the following advantages:
+
+1. The results are cached for performance
+2. If an unrecognized key is requested, the cache is refreshed, to accomodate for key rotation.
+
+```php
+use Firebase\JWT\CachedKeySet;
+use Firebase\JWT\JWT;
+
+// The URI for the JWK keys you wish to cash the results from
+$jwkUri = 'https://www.gstatic.com/iap/verify/public_key-jwk';
+
+// Create an HTTP client (can be any PSR-7 compatible HTTP client)
+$httpClient = new GuzzleHttp\Client(); 
+
+// Create an HTTP request factory (can be any PSR-17 compatible HTTP request factory)
+$httpFactory = new GuzzleHttp\Psr\HttpFactory();
+
+// Create a cache item pool (can be any PSR-6 compatible cache item pool)
+$cacheItemPool = Phpfastcache\CacheManager::getInstance('files');
+
+$keySet = new CachedKeySet(
+    $jwkUri,
+    $httpClient,
+    $httpFactory,
+    $cacheItemPool
+);
+
+$decoded = JWT::decode($payload, $keySet);
+```
+
+
 Miscellaneous
 -------------
 
