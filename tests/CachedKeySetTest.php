@@ -5,6 +5,8 @@ namespace Firebase\JWT;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Client\ClientInterface;
 use Prophecy\Argument;
+use LogicException;
+use OutOfBoundsException;
 
 class CachedKeySetTest extends TestCase
 {
@@ -18,10 +20,8 @@ class CachedKeySetTest extends TestCase
 
     public function testOffsetSetThrowsException()
     {
-        $this->setExpectedException(
-            'LogicException',
-            'Method not implemented'
-        );
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('Method not implemented');
 
         $cachedKeySet = new CachedKeySet(
             $this->testJwkUri,
@@ -35,10 +35,8 @@ class CachedKeySetTest extends TestCase
 
     public function testOffsetUnsetThrowsException()
     {
-        $this->setExpectedException(
-            'LogicException',
-            'Method not implemented'
-        );
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('Method not implemented');
 
         $cachedKeySet = new CachedKeySet(
             $this->testJwkUri,
@@ -52,10 +50,8 @@ class CachedKeySetTest extends TestCase
 
     public function testOutOfBoundsThrowsException()
     {
-        $this->setExpectedException(
-            'OutOfBoundsException',
-            'Key ID not found'
-        );
+        $this->expectException(OutOfBoundsException::class);
+        $this->expectExceptionMessage('Key ID not found');
 
         $cachedKeySet = new CachedKeySet(
             $this->testJwkUri,
@@ -277,20 +273,5 @@ class CachedKeySetTest extends TestCase
             ->willReturn(true);
 
         return $cache->reveal();
-    }
-
-    /*
-     * For compatibility with PHPUnit 4.8 and PHP < 5.6
-     */
-    public function setExpectedException($exceptionName, $message = '', $code = null)
-    {
-        if (method_exists($this, 'expectException')) {
-            $this->expectException($exceptionName);
-            if ($message) {
-                $this->expectExceptionMessage($message);
-            }
-        } else {
-            parent::setExpectedException($exceptionName, $message, $code);
-        }
     }
 }
