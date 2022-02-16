@@ -4,12 +4,18 @@ namespace Firebase\JWT;
 
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Client\ClientInterface;
+use Psr\Http\Message\RequestFactoryInterface;
+use Psr\Cache\CacheItemPoolInterface;
+use Psr\Cache\CacheItemInterface;
 use Prophecy\Argument;
+use Prophecy\PhpUnit\ProphecyTrait;
 use LogicException;
 use OutOfBoundsException;
 
 class CachedKeySetTest extends TestCase
 {
+    use ProphecyTrait;
+
     private $testJwkUri = 'httpjwkuri';
     private $testJwkUriKey = 'jwkhttpjwkuri';
     private $testJwk1 = '{"keys": [{"kid":"foo","kty":"RSA","alg":"foo","n":"","e":""}]}';
@@ -25,9 +31,9 @@ class CachedKeySetTest extends TestCase
 
         $cachedKeySet = new CachedKeySet(
             $this->testJwkUri,
-            $this->prophesize('Psr\Http\Client\ClientInterface')->reveal(),
-            $this->prophesize('Psr\Http\Message\RequestFactoryInterface')->reveal(),
-            $this->prophesize('Psr\Cache\CacheItemPoolInterface')->reveal()
+            $this->prophesize(ClientInterface::class)->reveal(),
+            $this->prophesize(RequestFactoryInterface::class)->reveal(),
+            $this->prophesize(CacheItemPoolInterface::class)->reveal()
         );
 
         $cachedKeySet['foo'] = 'bar';
@@ -40,9 +46,9 @@ class CachedKeySetTest extends TestCase
 
         $cachedKeySet = new CachedKeySet(
             $this->testJwkUri,
-            $this->prophesize('Psr\Http\Client\ClientInterface')->reveal(),
-            $this->prophesize('Psr\Http\Message\RequestFactoryInterface')->reveal(),
-            $this->prophesize('Psr\Cache\CacheItemPoolInterface')->reveal()
+            $this->prophesize(ClientInterface::class)->reveal(),
+            $this->prophesize(RequestFactoryInterface::class)->reveal(),
+            $this->prophesize(CacheItemPoolInterface::class)->reveal()
         );
 
         unset($cachedKeySet['foo']);
@@ -72,19 +78,19 @@ class CachedKeySetTest extends TestCase
             $this->getMockHttpFactory(),
             $this->getMockEmptyCache()
         );
-        $this->assertInstanceOf('Firebase\JWT\Key', $cachedKeySet['foo']);
+        $this->assertInstanceOf(Key::class, $cachedKeySet['foo']);
         $this->assertEquals('foo', $cachedKeySet['foo']->getAlgorithm());
     }
 
     public function testKeyIdIsCached()
     {
-        $cacheItem = $this->prophesize('Psr\Cache\CacheItemInterface');
+        $cacheItem = $this->prophesize(CacheItemInterface::class);
         $cacheItem->isHit()
             ->willReturn(true);
         $cacheItem->get()
             ->willReturn(JWK::parseKeySet(json_decode($this->testJwk1, true)));
 
-        $cache = $this->prophesize('Psr\Cache\CacheItemPoolInterface');
+        $cache = $this->prophesize(CacheItemPoolInterface::class);
         $cache->getItem($this->testJwkUriKey)
             ->willReturn($cacheItem->reveal());
         $cache->save(Argument::any())
@@ -92,17 +98,17 @@ class CachedKeySetTest extends TestCase
 
         $cachedKeySet = new CachedKeySet(
             $this->testJwkUri,
-            $this->prophesize('Psr\Http\Client\ClientInterface')->reveal(),
-            $this->prophesize('Psr\Http\Message\RequestFactoryInterface')->reveal(),
+            $this->prophesize(ClientInterface::class)->reveal(),
+            $this->prophesize(RequestFactoryInterface::class)->reveal(),
             $cache->reveal()
         );
-        $this->assertInstanceOf('Firebase\JWT\Key', $cachedKeySet['foo']);
+        $this->assertInstanceOf(Key::class, $cachedKeySet['foo']);
         $this->assertEquals('foo', $cachedKeySet['foo']->getAlgorithm());
     }
 
     public function testCachedKeyIdRefresh()
     {
-        $cacheItem = $this->prophesize('Psr\Cache\CacheItemInterface');
+        $cacheItem = $this->prophesize(CacheItemInterface::class);
         $cacheItem->isHit()
             ->shouldBeCalledOnce()
             ->willReturn(true);
@@ -111,9 +117,9 @@ class CachedKeySetTest extends TestCase
             ->willReturn(JWK::parseKeySet(json_decode($this->testJwk1, true)));
         $cacheItem->set(Argument::any())
             ->shouldBeCalledOnce()
-            ->willReturn(true);
+            ->will(function() { return $this; });
 
-        $cache = $this->prophesize('Psr\Cache\CacheItemPoolInterface');
+        $cache = $this->prophesize(CacheItemPoolInterface::class);
         $cache->getItem($this->testJwkUriKey)
             ->shouldBeCalledOnce()
             ->willReturn($cacheItem->reveal());
@@ -127,26 +133,28 @@ class CachedKeySetTest extends TestCase
             $this->getMockHttpFactory(),
             $cache->reveal()
         );
-        $this->assertInstanceOf('Firebase\JWT\Key', $cachedKeySet['foo']);
+        $this->assertInstanceOf(Key::class, $cachedKeySet['foo']);
         $this->assertEquals('foo', $cachedKeySet['foo']->getAlgorithm());
 
-        $this->assertInstanceOf('Firebase\JWT\Key', $cachedKeySet['bar']);
+        $this->assertInstanceOf(Key::class, $cachedKeySet['bar']);
         $this->assertEquals('bar', $cachedKeySet['bar']->getAlgorithm());
     }
 
     public function testCacheItemWithExpiresAfter()
     {
         $expiresAfter = 10;
-        $cacheItem = $this->prophesize('Psr\Cache\CacheItemInterface');
+        $cacheItem = $this->prophesize(CacheItemInterface::class);
         $cacheItem->isHit()
             ->shouldBeCalledOnce()
             ->willReturn(false);
         $cacheItem->set(Argument::any())
-            ->shouldBeCalledOnce();
+            ->shouldBeCalledOnce()
+            ->will(function() { return $this; });
         $cacheItem->expiresAfter($expiresAfter)
-            ->shouldBeCalledOnce();
+            ->shouldBeCalledOnce()
+            ->will(function() { return $this; });
 
-        $cache = $this->prophesize('Psr\Cache\CacheItemPoolInterface');
+        $cache = $this->prophesize(CacheItemPoolInterface::class);
         $cache->getItem($this->testJwkUriKey)
             ->shouldBeCalledOnce()
             ->willReturn($cacheItem->reveal());
@@ -160,7 +168,7 @@ class CachedKeySetTest extends TestCase
             $cache->reveal(),
             $expiresAfter
         );
-        $this->assertInstanceOf('Firebase\JWT\Key', $cachedKeySet['foo']);
+        $this->assertInstanceOf(Key::class, $cachedKeySet['foo']);
         $this->assertEquals('foo', $cachedKeySet['foo']->getAlgorithm());
     }
 
@@ -170,7 +178,7 @@ class CachedKeySetTest extends TestCase
         $payload = array('sub' => 'foo', 'exp' => strtotime('+10 seconds'));
         $msg = JWT::encode($payload, $privKey1, 'RS256', 'jwk1');
 
-        $cacheItem = $this->prophesize('Psr\Cache\CacheItemInterface');
+        $cacheItem = $this->prophesize(CacheItemInterface::class);
         $cacheItem->isHit()
             ->willReturn(true);
         $cacheItem->get()
@@ -178,14 +186,14 @@ class CachedKeySetTest extends TestCase
                 json_decode(file_get_contents(__DIR__ . '/data/rsa-jwkset.json'), true)
             ));
 
-        $cache = $this->prophesize('Psr\Cache\CacheItemPoolInterface');
+        $cache = $this->prophesize(CacheItemPoolInterface::class);
         $cache->getItem($this->testJwkUriKey)
             ->willReturn($cacheItem->reveal());
 
         $cachedKeySet = new CachedKeySet(
             $this->testJwkUri,
-            $this->prophesize('Psr\Http\Client\ClientInterface')->reveal(),
-            $this->prophesize('Psr\Http\Message\RequestFactoryInterface')->reveal(),
+            $this->prophesize(ClientInterface::class)->reveal(),
+            $this->prophesize(RequestFactoryInterface::class)->reveal(),
             $cache->reveal()
         );
 
@@ -199,10 +207,6 @@ class CachedKeySetTest extends TestCase
      */
     public function testFullIntegration($jwkUri, $kid)
     {
-        if (!class_exists(TestMemoryCacheItemPool::class)) {
-            $this->markTestSkipped('Use phpunit-system.xml.dist to run this tests');
-        }
-
         $cache = new TestMemoryCacheItemPool();
         $http = new \GuzzleHttp\Client();
         $factory = new \GuzzleHttp\Psr7\HttpFactory();
@@ -237,7 +241,7 @@ class CachedKeySetTest extends TestCase
             ->shouldBeCalledOnce()
             ->willReturn($body->reveal());
 
-        $http = $this->prophesize('Psr\Http\Client\ClientInterface');
+        $http = $this->prophesize(ClientInterface::class);
         $http->sendRequest(Argument::any())
             ->shouldBeCalledOnce()
             ->willReturn($response->reveal());
@@ -248,7 +252,7 @@ class CachedKeySetTest extends TestCase
     private function getMockHttpFactory()
     {
         $request = $this->prophesize('Psr\Http\Message\RequestInterface');
-        $factory = $this->prophesize('Psr\Http\Message\RequestFactoryInterface');
+        $factory = $this->prophesize(RequestFactoryInterface::class);
         $factory->createRequest('get', $this->testJwkUri)
             ->shouldBeCalledOnce()
             ->willReturn($request->reveal());
@@ -258,14 +262,14 @@ class CachedKeySetTest extends TestCase
 
     private function getMockEmptyCache()
     {
-        $cacheItem = $this->prophesize('Psr\Cache\CacheItemInterface');
+        $cacheItem = $this->prophesize(CacheItemInterface::class);
         $cacheItem->isHit()
             ->shouldBeCalledOnce()
             ->willReturn(false);
         $cacheItem->set(Argument::any())
-            ->willReturn(true);
+            ->will(function() { return $this; });
 
-        $cache = $this->prophesize('Psr\Cache\CacheItemPoolInterface');
+        $cache = $this->prophesize(CacheItemPoolInterface::class);
         $cache->getItem($this->testJwkUriKey)
             ->shouldBeCalledOnce()
             ->willReturn($cacheItem->reveal());
@@ -273,5 +277,144 @@ class CachedKeySetTest extends TestCase
             ->willReturn(true);
 
         return $cache->reveal();
+    }
+}
+
+/**
+ * A cache item pool
+ */
+final class TestMemoryCacheItemPool implements CacheItemPoolInterface
+{
+    private $items;
+    private $deferredItems;
+
+    public function getItem(string $key): CacheItemInterface
+    {
+        return current($this->getItems([$key]));
+    }
+
+    public function getItems(array $keys = []): iterable
+    {
+        $items = [];
+
+        foreach ($keys as $key) {
+            $items[$key] = $this->hasItem($key) ? clone $this->items[$key] : new TestMemoryCacheItem($key);
+        }
+
+        return $items;
+    }
+
+    public function hasItem(string $key): bool
+    {
+        return isset($this->items[$key]) && $this->items[$key]->isHit();
+    }
+
+    public function clear(): bool
+    {
+        $this->items = [];
+        $this->deferredItems = [];
+
+        return true;
+    }
+
+    public function deleteItem(string $key): bool
+    {
+        return $this->deleteItems([$key]);
+    }
+
+    public function deleteItems(array $keys): bool
+    {
+        foreach ($keys as $key) {
+            unset($this->items[$key]);
+        }
+
+        return true;
+    }
+
+    public function save(CacheItemInterface $item): bool
+    {
+        $this->items[$item->getKey()] = $item;
+
+        return true;
+    }
+
+    public function saveDeferred(CacheItemInterface $item): bool
+    {
+        $this->deferredItems[$item->getKey()] = $item;
+
+        return true;
+    }
+
+    public function commit(): bool
+    {
+        foreach ($this->deferredItems as $item) {
+            $this->save($item);
+        }
+
+        $this->deferredItems = [];
+
+        return true;
+    }
+}
+
+/**
+ * A cache item.
+ */
+final class TestMemoryCacheItem implements CacheItemInterface
+{
+    private $value;
+    private $expiration;
+    private $isHit = false;
+
+    public function __construct(private string $key)
+    {
+    }
+
+    public function getKey(): string
+    {
+        return $this->key;
+    }
+
+    public function get(): mixed
+    {
+        return $this->isHit() ? $this->value : null;
+    }
+
+    public function isHit(): bool
+    {
+        if (!$this->isHit) {
+            return false;
+        }
+
+        if ($this->expiration === null) {
+            return true;
+        }
+
+        return $this->currentTime()->getTimestamp() < $this->expiration->getTimestamp();
+    }
+
+    public function set(mixed $value): static
+    {
+        $this->isHit = true;
+        $this->value = $value;
+
+        return $this;
+    }
+
+    public function expiresAt(?\DateTimeInterface $expiration): static
+    {
+        $this->expiration = $expiration;
+        return $this;
+    }
+
+    public function expiresAfter(\DateInterval|int|null $time): static
+    {
+        $this->expiration = $this->currentTime()->add(new \DateInterval("PT{$time}S"));
+        return $this;
+    }
+
+    protected function currentTime()
+    {
+        return new \DateTime('now', new \DateTimeZone('UTC'));
     }
 }

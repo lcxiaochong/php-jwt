@@ -27,27 +27,6 @@ jobs:
       - name: Run Script
         run: vendor/bin/phpunit
 
-  test_system:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        php: [ "8.0", "8.1" ]
-    name: PHP ${{matrix.php }} Unit Test
-    steps:
-      - uses: actions/checkout@v2
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php }}
-      - name: Install Dependencies
-        uses: nick-invision/retry@v1
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          command: composer require guzzlehttp/guzzle psr/cache:2.0.0
-      - name: Run Script
-        run: vendor/bin/phpunit -c phpunit-system.xml.dist
-
   style:
     runs-on: ubuntu-latest
     name: PHP Style Check
