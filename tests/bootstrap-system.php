@@ -27,7 +27,7 @@ if (!class_exists(Client::class)) {
 
 // For cache objects
 if (!class_exists(CacheItemPoolInterface::class)) {
-    // throw new RuntimeException('You must run "composer require psr/cache" to execute the integration tests');
+    throw new RuntimeException('You must run "composer require psr/cache" to execute the integration tests');
 }
 
 /**
