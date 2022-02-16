@@ -117,7 +117,9 @@ class CachedKeySetTest extends TestCase
             ->willReturn(JWK::parseKeySet(json_decode($this->testJwk1, true)));
         $cacheItem->set(Argument::any())
             ->shouldBeCalledOnce()
-            ->will(function() { return $this; });
+            ->will(function () {
+                return $this;
+            });
 
         $cache = $this->prophesize(CacheItemPoolInterface::class);
         $cache->getItem($this->testJwkUriKey)
@@ -149,10 +151,14 @@ class CachedKeySetTest extends TestCase
             ->willReturn(false);
         $cacheItem->set(Argument::any())
             ->shouldBeCalledOnce()
-            ->will(function() { return $this; });
+            ->will(function () {
+                return $this;
+            });
         $cacheItem->expiresAfter($expiresAfter)
             ->shouldBeCalledOnce()
-            ->will(function() { return $this; });
+            ->will(function () {
+                return $this;
+            });
 
         $cache = $this->prophesize(CacheItemPoolInterface::class);
         $cache->getItem($this->testJwkUriKey)
@@ -267,7 +273,9 @@ class CachedKeySetTest extends TestCase
             ->shouldBeCalledOnce()
             ->willReturn(false);
         $cacheItem->set(Argument::any())
-            ->will(function() { return $this; });
+            ->will(function () {
+                return $this;
+            });
 
         $cache = $this->prophesize(CacheItemPoolInterface::class);
         $cache->getItem($this->testJwkUriKey)
