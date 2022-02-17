@@ -36,12 +36,12 @@ class JWT
      * we want to provide some extra leeway time to
      * account for clock skew.
      */
-    public static /* int */ $leeway = 0;
+    /* int */ public static $leeway = 0;
 
     /**
      * @var array<string, string[]>
      */
-    public static /* array */ $supported_algs = [
+    /* array */ public static $supported_algs = [
         'ES384' => ['openssl', 'SHA384'],
         'ES256' => ['openssl', 'SHA256'],
         'HS256' => ['hash_hmac', 'SHA256'],
@@ -78,7 +78,8 @@ class JWT
      */
     public static function decode(
         string $jwt,
-        /* Key|array|ArrayAccess */ $keyOrKeyArray
+        /* Key|array|ArrayAccess */
+        $keyOrKeyArray
     ): stdClass {
         // Validate JWT
         $timestamp = \time();
@@ -172,7 +173,8 @@ class JWT
      */
     public static function encode(
         array $payload,
-        /* string|resource|OpenSSLAsymmetricKey */ $key,
+        /* string|resource|OpenSSLAsymmetricKey */
+        $key,
         string $alg,
         string $keyId = null,
         array $head = null
@@ -209,7 +211,8 @@ class JWT
      */
     public static function sign(
         string $msg,
-        /* string|resource|OpenSSLAsymmetricKey */ $key,
+        /* string|resource|OpenSSLAsymmetricKey */
+        $key,
         string $alg
     ): string {
         if (empty(static::$supported_algs[$alg])) {
@@ -270,7 +273,8 @@ class JWT
     private static function verify(
         string $msg,
         string $signature,
-        /* string|resource|OpenSSLAsymmetricKey */ $keyMaterial,
+        /* string|resource|OpenSSLAsymmetricKey */
+        $keyMaterial,
         string $alg
     ): bool {
         if (empty(static::$supported_algs[$alg])) {
@@ -402,7 +406,8 @@ class JWT
      * @return Key
      */
     private static function getKey(
-        /* Key|array|ArrayAccess */ $keyOrKeyArray,
+        /* Key|array|ArrayAccess */
+        $keyOrKeyArray,
         ?string $kid
     ): Key {
         if ($keyOrKeyArray instanceof Key) {

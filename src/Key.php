@@ -8,16 +8,18 @@ use InvalidArgumentException;
 
 class Key
 {
-    private /* string|resource|OpenSSLAsymmetricKey */ $keyMaterial;
-    private /* string */ $algorithm;
+    /* string|resource|OpenSSLAsymmetricKey */ private $keyMaterial;
+    /* string */ private $algorithm;
 
     /**
      * @param string|resource|OpenSSLAsymmetricKey $keyMaterial
      * @param string $algorithm
      */
     public function __construct(
-        /* private string|resource|OpenSSLAsymmetricKey */ $keyMaterial,
-        /* private */ string $algorithm
+        /* private string|resource|OpenSSLAsymmetricKey */
+        $keyMaterial,
+        /* private */
+        string $algorithm
     ) {
         if (
             !is_string($keyMaterial)
