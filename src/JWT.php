@@ -36,12 +36,12 @@ class JWT
      * we want to provide some extra leeway time to
      * account for clock skew.
      */
-    public static int $leeway = 0;
+    public static /* int */ $leeway = 0;
 
     /**
      * @var array<string, string[]>
      */
-    public static array $supported_algs = [
+    public static /* array */ $supported_algs = [
         'ES384' => ['openssl', 'SHA384'],
         'ES256' => ['openssl', 'SHA256'],
         'HS256' => ['hash_hmac', 'SHA256'],
@@ -76,8 +76,10 @@ class JWT
      * @uses jsonDecode
      * @uses urlsafeB64Decode
      */
-    public static function decode(string $jwt, Key|array|ArrayAccess $keyOrKeyArray): stdClass
-    {
+    public static function decode(
+        string $jwt,
+        /* Key|array|ArrayAccess */ $keyOrKeyArray
+    ): stdClass {
         // Validate JWT
         $timestamp = \time();
 
@@ -157,11 +159,11 @@ class JWT
     /**
      * Converts and signs a PHP object or array into a JWT string.
      *
-     * @param array<mixed>                $payload PHP array
-     * @param string|OpenSSLAsymmetricKey $key     The secret key.
-     *                                             If the algorithm used is asymmetric, this is the private key
-     * @param string                      $keyId
-     * @param array<string, string>       $head    An array with header elements to attach
+     * @param array<mixed>                         $payload PHP array
+     * @param string|resource|OpenSSLAsymmetricKey $key     The secret key.
+     *                                                      If the algorithm used is asymmetric, this is the private key
+     * @param string                               $keyId
+     * @param array<string, string>                $head    An array with header elements to attach
      *
      * @return string A signed JWT
      *
@@ -170,7 +172,7 @@ class JWT
      */
     public static function encode(
         array $payload,
-        string|OpenSSLAsymmetricKey $key,
+        /* string|resource|OpenSSLAsymmetricKey */ $key,
         string $alg,
         string $keyId = null,
         array $head = null
@@ -196,17 +198,20 @@ class JWT
     /**
      * Sign a string with a given key and algorithm.
      *
-     * @param string                      $msg  The message to sign
-     * @param string|OpenSSLAsymmetricKey $key  The secret key.
-     * @param string                      $alg  Supported algorithms are 'ES384','ES256', 'HS256', 'HS384',
-     *                                          'HS512', 'RS256', 'RS384', and 'RS512'
+     * @param string                               $msg  The message to sign
+     * @param string|resource|OpenSSLAsymmetricKey $key  The secret key.
+     * @param string                               $alg  Supported algorithms are 'ES384','ES256', 'HS256', 'HS384',
+     *                                                   'HS512', 'RS256', 'RS384', and 'RS512'
      *
      * @return string An encrypted message
      *
      * @throws DomainException Unsupported algorithm or bad key was specified
      */
-    public static function sign(string $msg, string|OpenSSLAsymmetricKey $key, string $alg): string
-    {
+    public static function sign(
+        string $msg,
+        /* string|resource|OpenSSLAsymmetricKey */ $key,
+        string $alg
+    ): string {
         if (empty(static::$supported_algs[$alg])) {
             throw new DomainException('Algorithm not supported');
         }
@@ -253,10 +258,10 @@ class JWT
      * Verify a signature with the message, key and method. Not all methods
      * are symmetric, so we must have a separate verify and sign method.
      *
-     * @param string                      $msg         The original message (header and body)
-     * @param string                      $signature   The original signature
-     * @param string|OpenSSLAsymmetricKey $keyMaterial For HS*, a string key works. for RS*, must be an instance of OpenSSLAsymmetricKey
-     * @param string                      $alg         The algorithm
+     * @param string                               $msg         The original message (header and body)
+     * @param string                               $signature   The original signature
+     * @param string|resource|OpenSSLAsymmetricKey $keyMaterial For HS*, a string key works. for RS*, must be an instance of OpenSSLAsymmetricKey
+     * @param string                               $alg         The algorithm
      *
      * @return bool
      *
@@ -265,7 +270,7 @@ class JWT
     private static function verify(
         string $msg,
         string $signature,
-        string|OpenSSLAsymmetricKey $keyMaterial,
+        /* string|resource|OpenSSLAsymmetricKey */ $keyMaterial,
         string $alg
     ): bool {
         if (empty(static::$supported_algs[$alg])) {
@@ -319,7 +324,7 @@ class JWT
      *
      * @throws DomainException Provided string was invalid JSON
      */
-    public static function jsonDecode(string $input): mixed
+    public static function jsonDecode(string $input)/*:  mixed */
     {
         $obj = \json_decode($input, false, 512, JSON_BIGINT_AS_STRING);
 
@@ -396,8 +401,10 @@ class JWT
      *
      * @return Key
      */
-    private static function getKey(Key|array|ArrayAccess $keyOrKeyArray, ?string $kid): Key
-    {
+    private static function getKey(
+        /* Key|array|ArrayAccess */ $keyOrKeyArray,
+        ?string $kid
+    ): Key {
         if ($keyOrKeyArray instanceof Key) {
             return $keyOrKeyArray;
         }
