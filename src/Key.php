@@ -8,8 +8,10 @@ use InvalidArgumentException;
 
 class Key
 {
-    /* string|resource|OpenSSLAsymmetricKey */ private $keyMaterial;
-    /* string */ private $algorithm;
+    /** @var string|resource|OpenSSLAsymmetricKey */
+    private $keyMaterial;
+    /** @var string */
+    private $algorithm;
 
     /**
      * @param string|resource|OpenSSLAsymmetricKey $keyMaterial
