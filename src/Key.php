@@ -16,13 +16,6 @@ class Key
         private string|OpenSSLAsymmetricKey $keyMaterial,
         private string $algorithm
     ) {
-        if (
-            !is_string($keyMaterial)
-            && !$keyMaterial instanceof OpenSSLAsymmetricKey
-        ) {
-            throw new TypeError('Key material must be a string or OpenSSLAsymmetricKey');
-        }
-
         if (empty($keyMaterial)) {
             throw new InvalidArgumentException('Key material must not be empty');
         }
