@@ -124,8 +124,10 @@ class JWK
      *
      * @uses encodeLength
      */
-    private static function createPemFromModulusAndExponent($n, $e)
-    {
+    private static function createPemFromModulusAndExponent(
+        string $n,
+        string $e
+    ): string {
         if (false === ($modulus = JWT::urlsafeB64Decode($n))) {
             throw new UnexpectedValueException('Invalid JWK encoding');
         }
