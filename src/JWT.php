@@ -35,8 +35,10 @@ class JWT
      * When checking nbf, iat or expiration times,
      * we want to provide some extra leeway time to
      * account for clock skew.
+     *
+     * @var int
      */
-    /* int */ public static $leeway = 0;
+    /* array */ public static $leeway = 0;
 
     /**
      * @var array<string, string[]>
@@ -227,7 +229,7 @@ class JWT
                 return \hash_hmac($algorithm, $msg, $key, true);
             case 'openssl':
                 $signature = '';
-                $success = \openssl_sign($msg, $signature, $key, $algorithm);
+                $success = \openssl_sign($msg, $signature, $key, $algorithm); // @phpstan-ignore-line
                 if (!$success) {
                     throw new DomainException("OpenSSL unable to sign data");
                 }
@@ -284,7 +286,7 @@ class JWT
         list($function, $algorithm) = static::$supported_algs[$alg];
         switch ($function) {
             case 'openssl':
-                $success = \openssl_verify($msg, $signature, $keyMaterial, $algorithm);
+                $success = \openssl_verify($msg, $signature, $keyMaterial, $algorithm); // @phpstan-ignore-line
                 if ($success === 1) {
                     return true;
                 } elseif ($success === 0) {
