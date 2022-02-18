@@ -39,7 +39,7 @@ class JWT
     public static int $leeway = 0;
 
     /**
-     * @var array<string, array<string>>
+     * @var array<string, string[]>
      */
     public static array $supported_algs = [
         'ES384' => ['openssl', 'SHA384'],
